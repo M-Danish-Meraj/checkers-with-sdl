@@ -1,0 +1,68 @@
+// main.c
+#include <SDL2/SDL.h>
+#include <stdio.h>
+#include <stdbool.h>
+#include "drawBoard.h"
+#include "makeMove.h"
+#include "isValidMove.h"
+#include "globals.h"
+
+int main() {
+    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+        printf("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
+        return 1;
+    }
+
+    SDL_Window* window = SDL_CreateWindow("SDL Checkers Game", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_SHOWN);
+    SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+
+    char board[BOARD_SIZE][BOARD_SIZE] = {
+        {' ', 'B', ' ', 'B', ' ', 'B', ' ', 'B'},
+        {'B', ' ', 'B', ' ', 'B', ' ', 'B', ' '},
+        {' ', 'B', ' ', 'B', ' ', 'B', ' ', 'B'},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {'R', ' ', 'R', ' ', 'R', ' ', 'R', ' '},
+        {' ', 'R', ' ', 'R', ' ', 'R', ' ', 'R'},
+        {'R', ' ', 'R', ' ', 'R', ' ', 'R', ' '}
+    };
+
+    bool quit = false;
+    SDL_Event event;
+    int currentPlayer = 0;
+    char playerPieces[2] = {RED, BLACK};
+
+    while (!quit) {
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_QUIT) {
+                quit = true;
+            } else if (event.type == SDL_MOUSEBUTTONDOWN) {
+                int mouseX, mouseY;
+                SDL_GetMouseState(&mouseX, &mouseY);
+                int startX = mouseY / TILE_SIZE;
+                int startY = mouseX / TILE_SIZE;
+
+                if (event.button.button == SDL_BUTTON_LEFT) {
+                    SDL_WaitEvent(&event);
+                    SDL_GetMouseState(&mouseX, &mouseY);
+                    int endX = mouseY / TILE_SIZE;
+                    int endY = mouseX / TILE_SIZE;
+
+                    if (isValidMove(board, startX, startY, endX, endY, playerPieces[currentPlayer])) {
+                        makeMove(board, startX, startY, endX, endY);
+                        currentPlayer = 1 - currentPlayer;
+                    }
+                }
+            }
+        }
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+        SDL_RenderClear(renderer);
+        drawBoard(renderer, board);
+        SDL_RenderPresent(renderer);
+    }
+
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
+    SDL_Quit();
+    return 0;
+}
