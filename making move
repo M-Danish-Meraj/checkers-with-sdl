@@ -1,0 +1,14 @@
+// makeMove.c
+#include "makeMove.h"
+#include "globals.h"
+
+void makeMove(char board[BOARD_SIZE][BOARD_SIZE], int startX, int startY, int endX, int endY) {
+    board[endX][endY] = board[startX][startY];
+    board[startX][startY] = EMPTY;
+
+    if (abs(endX - startX) == 2 && abs(endY - startY) == 2) { // Check for capture
+        int midX = (startX + endX) / 2;
+        int midY = (startY + endY) / 2;
+        board[midX][midY] = EMPTY;
+    }
+}
