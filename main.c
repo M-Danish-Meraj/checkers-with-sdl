@@ -33,8 +33,8 @@ void drawBoard() {
         for (int x = 0; x < BOARD_SIZE; x++) {
             SDL_Rect tileRect = {x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE};
 
-            if ((x + y) % 2 == 0) SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255);  // Light tile
-            else SDL_SetRenderDrawColor(renderer, 50, 50, 50, 255);                      // Dark tile
+            if ((x + y) % 2 == 0) SDL_SetRenderDrawColor(renderer, 240, 217, 181, 255);  // Light tile
+            else SDL_SetRenderDrawColor(renderer, 181, 136, 99, 255);                      // Dark tile
 
             SDL_RenderFillRect(renderer, &tileRect);
 
