@@ -14,6 +14,20 @@ SDL_Window* window = NULL;
 SDL_Renderer* renderer = NULL;
 int board[BOARD_SIZE][BOARD_SIZE];
 
+// Helper function to draw a filled circle in SDL
+void drawCircle(SDL_Renderer* renderer, int centerX, int centerY, int radius) {
+    for (int w = 0; w < radius * 2; w++) {
+        for (int h = 0; h < radius * 2; h++) {
+            int dx = radius - w; // Horizontal offset
+            int dy = radius - h; // Vertical offset
+            if ((dx * dx + dy * dy) <= (radius * radius)) {
+                SDL_RenderDrawPoint(renderer, centerX + dx, centerY + dy);
+            }
+        }
+    }
+}
+
+
 void initBoard() {
     // Initialize an 8x8 board with players' pieces
     for (int y = 0; y < BOARD_SIZE; y++) {
@@ -33,22 +47,34 @@ void drawBoard() {
         for (int x = 0; x < BOARD_SIZE; x++) {
             SDL_Rect tileRect = {x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE};
 
-            if ((x + y) % 2 == 0) SDL_SetRenderDrawColor(renderer, 240, 217, 181, 255);  // Light tile
-            else SDL_SetRenderDrawColor(renderer, 181, 136, 99, 255);                      // Dark tile
-
+            // Draw checkerboard pattern
+            if ((x + y) % 2 == 0) {
+                SDL_SetRenderDrawColor(renderer, 148, 98, 57, 255); // Dark brown
+            } else {
+                SDL_SetRenderDrawColor(renderer, 240, 217, 181, 255); // Light tan
+            }
             SDL_RenderFillRect(renderer, &tileRect);
 
-            if (board[y][x] == PLAYER1 || board[y][x] == PLAYER2) {
-                if (board[y][x] & KING_MASK) SDL_SetRenderDrawColor(renderer, 255, 215, 0, 255);  // King color
-                else if (board[y][x] == PLAYER1) SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);  // Player 1 color
-                else SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);                            // Player 2 color
+            int centerX = x * TILE_SIZE + TILE_SIZE / 2;
+            int centerY = y * TILE_SIZE + TILE_SIZE / 2;
+            int radius = TILE_SIZE / 3;
 
-                SDL_Rect pieceRect = {x * TILE_SIZE + TILE_SIZE / 4, y * TILE_SIZE + TILE_SIZE / 4, TILE_SIZE / 2, TILE_SIZE / 2};
-                SDL_RenderFillRect(renderer, &pieceRect);
+            // Draw player pieces with outlines
+            if (board[y][x] == PLAYER1) {
+                SDL_SetRenderDrawColor(renderer, 139, 0, 0, 255); // Dark red for outline
+                drawCircle(renderer, centerX, centerY, radius + 4); // Slightly larger radius for outline
+
+                SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255); // Red for Player 1
+                drawCircle(renderer, centerX, centerY, radius); // Main piece circle
+            } else if (board[y][x] == PLAYER2) {
+                SDL_SetRenderDrawColor(renderer, 0, 0, 139, 255); // Dark blue for outline
+                drawCircle(renderer, centerX, centerY, radius + 4); // Slightly larger radius for outline
+
+                SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255); // Blue for Player 2
+                drawCircle(renderer, centerX, centerY, radius); // Main piece circle
             }
         }
     }
-
     SDL_RenderPresent(renderer);
 }
 
