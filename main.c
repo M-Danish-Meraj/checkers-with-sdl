@@ -1,6 +1,8 @@
 #define SDL_MAIN_HANDLED
 #include <SDL2/SDL.h>
 #include <stdbool.h>
+#include <stdio.h>
+#include <SDL2/SDL_ttf.h>
 
 #define WINDOW_SIZE 800
 #define BOARD_SIZE 8
@@ -9,6 +11,7 @@
 #define PLAYER1 1
 #define PLAYER2 2
 #define KING_MASK 4
+TTF_Font* font = NULL;
 
 SDL_Window* window = NULL;
 SDL_Renderer* renderer = NULL;
@@ -27,6 +30,18 @@ void drawCircle(SDL_Renderer* renderer, int centerX, int centerY, int radius) {
     }
 }
 
+void countPieces(int* player1Count, int* player2Count) {
+    *player1Count = 0;
+    *player2Count = 0;
+    for (int y = 0; y < BOARD_SIZE; y++) {
+        for (int x = 0; x < BOARD_SIZE; x++) {
+            if (board[y][x] == PLAYER1) (*player1Count)++;
+            else if (board[y][x] == PLAYER2) (*player2Count)++;
+        }
+    }
+}
+
+
 
 void initBoard() {
     // Initialize an 8x8 board with players' pieces
@@ -39,19 +54,17 @@ void initBoard() {
     }
 }
 
-void drawBoard() {
+void drawBoard(int currentPlayer) {
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     SDL_RenderClear(renderer);
 
     for (int y = 0; y < BOARD_SIZE; y++) {
         for (int x = 0; x < BOARD_SIZE; x++) {
             SDL_Rect tileRect = {x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE};
-
-            // Draw checkerboard pattern
             if ((x + y) % 2 == 0) {
-                SDL_SetRenderDrawColor(renderer, 148, 98, 57, 255); // Dark brown
+                SDL_SetRenderDrawColor(renderer, 148, 98, 57, 255);
             } else {
-                SDL_SetRenderDrawColor(renderer, 240, 217, 181, 255); // Light tan
+                SDL_SetRenderDrawColor(renderer, 240, 217, 181, 255);
             }
             SDL_RenderFillRect(renderer, &tileRect);
 
@@ -59,24 +72,41 @@ void drawBoard() {
             int centerY = y * TILE_SIZE + TILE_SIZE / 2;
             int radius = TILE_SIZE / 3;
 
-            // Draw player pieces with outlines
             if (board[y][x] == PLAYER1) {
-                SDL_SetRenderDrawColor(renderer, 120, 0, 0, 255); // Dark red for outline
-                drawCircle(renderer, centerX, centerY, radius + 4); // Slightly larger radius for outline
+                SDL_SetRenderDrawColor(renderer, 120, 0, 0, 255); // Actual pieces
+                drawCircle(renderer, centerX, centerY, radius+4);
 
-                SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255); // Red for Player 1
-                drawCircle(renderer, centerX, centerY, radius); // Main piece circle
+                SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255); // Outlines
+                drawCircle(renderer, centerX, centerY, radius);
             } else if (board[y][x] == PLAYER2) {
-                SDL_SetRenderDrawColor(renderer, 0, 0, 70, 255); // Dark blue for outline
-                drawCircle(renderer, centerX, centerY, radius + 4); // Slightly larger radius for outline
+                SDL_SetRenderDrawColor(renderer, 0, 0, 80, 255);
+                drawCircle(renderer, centerX, centerY, radius+4);
 
-                SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255); // Blue for Player 2
-                drawCircle(renderer, centerX, centerY, radius); // Main piece circle
+                SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
+                drawCircle(renderer, centerX, centerY, radius);
             }
         }
     }
+
+    // Display text
+    char statusText[128];
+    int player1Count, player2Count;
+    countPieces(&player1Count, &player2Count);
+    sprintf(statusText, "Turn: Player %d  (1=RED, 2=BLUE) --- RED: %d --- BLUE: %d", currentPlayer, player1Count, player2Count);
+
+    SDL_Color textColor = {0, 0, 0, 255};
+    SDL_Surface* textSurface = TTF_RenderText_Blended(font, statusText, textColor);
+    SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
+
+    SDL_Rect textRect = {10, 10, textSurface->w, textSurface->h};
+    SDL_RenderCopy(renderer, textTexture, NULL, &textRect);
+
+    SDL_FreeSurface(textSurface);
+    SDL_DestroyTexture(textTexture);
+
     SDL_RenderPresent(renderer);
 }
+
 
 bool isValidMove(int player, int startX, int startY, int endX, int endY) {
     int dx = endX - startX;
@@ -134,7 +164,8 @@ void handlePlayerTurn(int player) {
                 }
             }
         }
-        drawBoard();
+        drawBoard(player);
+
     }
 }
 
@@ -156,23 +187,35 @@ bool hasValidMoves(int player) {
 void gameLoop() {
     int currentPlayer = PLAYER1;
     while (true) {
-        drawBoard();
+        drawBoard(currentPlayer);
         handlePlayerTurn(currentPlayer);
         if (!hasValidMoves(PLAYER1) || !hasValidMoves(PLAYER2)) break;
         currentPlayer = (currentPlayer == PLAYER1) ? PLAYER2 : PLAYER1;
     }
 }
 
+
 int main(int argc, char* argv[]) {
     SDL_Init(SDL_INIT_VIDEO);
     window = SDL_CreateWindow("Checkers Game", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_SIZE, WINDOW_SIZE, SDL_WINDOW_SHOWN);
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
+    TTF_Init();
+    font = TTF_OpenFont("Arial.ttf", 28); // Replace with actual path
+    if (!font) {
+        printf("Failed to load font: %s\n", TTF_GetError());
+        exit(1);
+    }
+
     initBoard();
     gameLoop();
+
 
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
+    TTF_CloseFont(font);
+    TTF_Quit();
+
     return 0;
 }
