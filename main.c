@@ -2,6 +2,7 @@
 #include <SDL2/SDL.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
 
 #define WINDOW_SIZE 800
@@ -12,6 +13,7 @@
 #define PLAYER2 2
 #define KING_MASK 4
 TTF_Font* font = NULL;
+SDL_Texture* trophyTexture = NULL;
 
 SDL_Window* window = NULL;
 SDL_Renderer* renderer = NULL;
@@ -197,36 +199,49 @@ void displayWinner(int winner) {
     SDL_Color textColor = {0, 0, 0, 255};
     SDL_Surface* textSurface = TTF_RenderText_Blended(font, winnerText, textColor);
     SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
-
-    int textWidth = textSurface->w;
-    int textHeight = textSurface->h;
     SDL_FreeSurface(textSurface);
 
+    int textWidth, textHeight;
+    SDL_QueryTexture(textTexture, NULL, NULL, &textWidth, &textHeight);
+
     SDL_Rect textRect = {
-        (WINDOW_SIZE - textWidth) / 2, // Center horizontally
-        (WINDOW_SIZE - textHeight) / 2, // Center vertically
-        textWidth,
-        textHeight
+    (WINDOW_SIZE - textWidth) / 2,  // X: Center horizontally
+    (WINDOW_SIZE - textHeight) / 2 - 150, // Y: Shift 50 pixels down
+    textWidth,
+    textHeight
     };
 
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255); // Clear screen to white
-    SDL_RenderClear(renderer);
 
-    SDL_RenderCopy(renderer, textTexture, NULL, &textRect);
+    SDL_Rect trophyRect = {
+        0,                     // Start at the left edge
+        WINDOW_SIZE,           // Start off-screen
+        WINDOW_SIZE,           // Trophy fills the entire window
+        WINDOW_SIZE
+    };
+
+    // Animate the trophy sliding up
+    for (int i = 0; i < WINDOW_SIZE; i += 5) {
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+        SDL_RenderClear(renderer);
+
+        // Draw the trophy
+        trophyRect.y = WINDOW_SIZE - i;  // Slide up
+        SDL_RenderCopy(renderer, trophyTexture, NULL, &trophyRect);
+
+        // Draw the winner text
+        SDL_RenderCopy(renderer, textTexture, NULL, &textRect);
+
+        SDL_RenderPresent(renderer);
+        SDL_Delay(10);  // Delay to create animation effect
+    }
+
     SDL_RenderPresent(renderer);
+    SDL_Delay(5000);  // Pause for 5 seconds before exiting
 
     SDL_DestroyTexture(textTexture);
-
-    // Wait for the user to quit
-    SDL_Event e;
-    while (1) {
-        while (SDL_PollEvent(&e)) {
-            if (e.type == SDL_QUIT) {
-                return;
-            }
-        }
-    }
 }
+
+
 
 void gameLoop() {
     int currentPlayer = PLAYER1;
@@ -258,9 +273,15 @@ int main(int argc, char* argv[]) {
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
     TTF_Init();
-    font = TTF_OpenFont("Arial.ttf", 28); // Replace with actual path
+    font = TTF_OpenFont("Arial.ttf", 26); // Replace with actual path
     if (!font) {
         printf("Failed to load font: %s\n", TTF_GetError());
+        exit(1);
+    }
+
+        trophyTexture = IMG_LoadTexture(renderer, "trophy.png");
+    if (!trophyTexture) {
+        printf("Failed to load trophy image: %s\n", IMG_GetError());
         exit(1);
     }
 
@@ -273,6 +294,7 @@ int main(int argc, char* argv[]) {
     SDL_Quit();
     TTF_CloseFont(font);
     TTF_Quit();
+    SDL_DestroyTexture(trophyTexture);
 
     return 0;
 }
