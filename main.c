@@ -61,13 +61,13 @@ void drawBoard() {
 
             // Draw player pieces with outlines
             if (board[y][x] == PLAYER1) {
-                SDL_SetRenderDrawColor(renderer, 139, 0, 0, 255); // Dark red for outline
+                SDL_SetRenderDrawColor(renderer, 120, 0, 0, 255); // Dark red for outline
                 drawCircle(renderer, centerX, centerY, radius + 4); // Slightly larger radius for outline
 
                 SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255); // Red for Player 1
                 drawCircle(renderer, centerX, centerY, radius); // Main piece circle
             } else if (board[y][x] == PLAYER2) {
-                SDL_SetRenderDrawColor(renderer, 0, 0, 139, 255); // Dark blue for outline
+                SDL_SetRenderDrawColor(renderer, 0, 0, 70, 255); // Dark blue for outline
                 drawCircle(renderer, centerX, centerY, radius + 4); // Slightly larger radius for outline
 
                 SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255); // Blue for Player 2
