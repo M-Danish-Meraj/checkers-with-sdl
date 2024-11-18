@@ -19,6 +19,96 @@ SDL_Window* window = NULL;
 SDL_Renderer* renderer = NULL;
 int board[BOARD_SIZE][BOARD_SIZE];
 
+void startMenu(char player1Name[], char player2Name[]) {
+    SDL_Event e;
+    bool menuActive = true;
+
+    // Colors
+    SDL_Color textColor = {0, 0, 0, 255};
+    SDL_Color buttonColor = {200, 200, 200, 255};
+    SDL_Color buttonHoverColor = {180, 180, 180, 255};
+
+    // Title text
+    SDL_Surface* titleSurface = TTF_RenderText_Blended(font, "Checkers Game", textColor);
+    SDL_Texture* titleTexture = SDL_CreateTextureFromSurface(renderer, titleSurface);
+    SDL_FreeSurface(titleSurface);
+
+    SDL_Rect titleRect = {(WINDOW_SIZE - 400) / 2, 100, 400, 50};
+
+    // Button rectangles
+    SDL_Rect startButton = {(WINDOW_SIZE - 200) / 2, 250, 200, 50};
+    SDL_Rect quitButton = {(WINDOW_SIZE - 200) / 2, 350, 200, 50};
+
+    while (menuActive) {
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255); // Clear screen
+        SDL_RenderClear(renderer);
+
+        // Render the title
+        SDL_RenderCopy(renderer, titleTexture, NULL, &titleRect);
+
+        // Get mouse position
+        int mouseX, mouseY;
+        SDL_GetMouseState(&mouseX, &mouseY);
+
+        // Check for hover and draw buttons
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+
+        // "Start" button
+        if (SDL_PointInRect(&(SDL_Point){mouseX, mouseY}, &startButton)) {
+            SDL_SetRenderDrawColor(renderer, buttonHoverColor.r, buttonHoverColor.g, buttonHoverColor.b, 255);
+        } else {
+            SDL_SetRenderDrawColor(renderer, buttonColor.r, buttonColor.g, buttonColor.b, 255);
+        }
+        SDL_RenderFillRect(renderer, &startButton);
+
+        // "Quit" button
+        if (SDL_PointInRect(&(SDL_Point){mouseX, mouseY}, &quitButton)) {
+            SDL_SetRenderDrawColor(renderer, buttonHoverColor.r, buttonHoverColor.g, buttonHoverColor.b, 255);
+        } else {
+            SDL_SetRenderDrawColor(renderer, buttonColor.r, buttonColor.g, buttonColor.b, 255);
+        }
+        SDL_RenderFillRect(renderer, &quitButton);
+
+        // Render button text
+        SDL_Surface* startSurface = TTF_RenderText_Blended(font, "Start", textColor);
+        SDL_Surface* quitSurface = TTF_RenderText_Blended(font, "Quit", textColor);
+
+        SDL_Texture* startTexture = SDL_CreateTextureFromSurface(renderer, startSurface);
+        SDL_Texture* quitTexture = SDL_CreateTextureFromSurface(renderer, quitSurface);
+
+        SDL_Rect startTextRect = {startButton.x + 50, startButton.y + 10, 100, 30};
+        SDL_Rect quitTextRect = {quitButton.x + 50, quitButton.y + 10, 100, 30};
+
+        SDL_RenderCopy(renderer, startTexture, NULL, &startTextRect);
+        SDL_RenderCopy(renderer, quitTexture, NULL, &quitTextRect);
+
+        SDL_FreeSurface(startSurface);
+        SDL_FreeSurface(quitSurface);
+        SDL_DestroyTexture(startTexture);
+        SDL_DestroyTexture(quitTexture);
+
+        SDL_RenderPresent(renderer);
+
+        // Handle events
+        while (SDL_PollEvent(&e)) {
+            if (e.type == SDL_QUIT) {
+                exit(0);
+            } else if (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_LEFT) {
+                // Check if "Start" button clicked
+                if (SDL_PointInRect(&(SDL_Point){mouseX, mouseY}, &startButton)) {
+                    menuActive = false; // Exit menu and start the game
+                }
+                // Check if "Quit" button clicked
+                if (SDL_PointInRect(&(SDL_Point){mouseX, mouseY}, &quitButton)) {
+                    exit(0); // Quit the program
+                }
+            }
+        }
+    }
+
+    SDL_DestroyTexture(titleTexture);
+}
+
 // Helper function to draw a filled circle in SDL
 void drawCircle(SDL_Renderer* renderer, int centerX, int centerY, int radius) {
     for (int w = 0; w < radius * 2; w++) {
@@ -266,28 +356,33 @@ void gameLoop() {
     }
 }
 
-
 int main(int argc, char* argv[]) {
     SDL_Init(SDL_INIT_VIDEO);
     window = SDL_CreateWindow("Checkers Game", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_SIZE, WINDOW_SIZE, SDL_WINDOW_SHOWN);
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
     TTF_Init();
-    font = TTF_OpenFont("Arial.ttf", 26); // Replace with actual path
+    font = TTF_OpenFont("Arial.ttf", 26); // Replace with the actual path
     if (!font) {
         printf("Failed to load font: %s\n", TTF_GetError());
         exit(1);
     }
 
-        trophyTexture = IMG_LoadTexture(renderer, "trophy.png");
+    trophyTexture = IMG_LoadTexture(renderer, "trophy.png");
     if (!trophyTexture) {
         printf("Failed to load trophy image: %s\n", IMG_GetError());
         exit(1);
     }
 
+    char player1Name[50] = "Player 1";
+    char player2Name[50] = "Player 2";
+
+    // Show the start menu
+    startMenu(player1Name, player2Name);
+
+    // Initialize and start the game
     initBoard();
     gameLoop();
-
 
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
