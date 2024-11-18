@@ -184,12 +184,69 @@ bool hasValidMoves(int player) {
     return false;
 }
 
+void displayWinner(int winner) {
+    char winnerText[128];
+    if (winner == PLAYER1) {
+        sprintf(winnerText, "Player 1 Wins!");
+    } else if (winner == PLAYER2) {
+        sprintf(winnerText, "Player 2 Wins!");
+    } else {
+        sprintf(winnerText, "It's a Draw!");
+    }
+
+    SDL_Color textColor = {0, 0, 0, 255};
+    SDL_Surface* textSurface = TTF_RenderText_Blended(font, winnerText, textColor);
+    SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
+
+    int textWidth = textSurface->w;
+    int textHeight = textSurface->h;
+    SDL_FreeSurface(textSurface);
+
+    SDL_Rect textRect = {
+        (WINDOW_SIZE - textWidth) / 2, // Center horizontally
+        (WINDOW_SIZE - textHeight) / 2, // Center vertically
+        textWidth,
+        textHeight
+    };
+
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255); // Clear screen to white
+    SDL_RenderClear(renderer);
+
+    SDL_RenderCopy(renderer, textTexture, NULL, &textRect);
+    SDL_RenderPresent(renderer);
+
+    SDL_DestroyTexture(textTexture);
+
+    // Wait for the user to quit
+    SDL_Event e;
+    while (1) {
+        while (SDL_PollEvent(&e)) {
+            if (e.type == SDL_QUIT) {
+                return;
+            }
+        }
+    }
+}
+
 void gameLoop() {
     int currentPlayer = PLAYER1;
     while (true) {
         drawBoard(currentPlayer);
         handlePlayerTurn(currentPlayer);
-        if (!hasValidMoves(PLAYER1) || !hasValidMoves(PLAYER2)) break;
+
+        if (!hasValidMoves(PLAYER1) || !hasValidMoves(PLAYER2)) {
+            int winner = PLAYER1;
+            if (!hasValidMoves(PLAYER1)) {
+                winner = PLAYER2;
+            } else if (!hasValidMoves(PLAYER2)) {
+                winner = PLAYER1;
+            } else {
+                winner = 0; // Draw condition
+            }
+            displayWinner(winner);
+            break;
+        }
+
         currentPlayer = (currentPlayer == PLAYER1) ? PLAYER2 : PLAYER1;
     }
 }
