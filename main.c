@@ -24,9 +24,9 @@ void startMenu(char player1Name[], char player2Name[]) {
     bool menuActive = true;
 
     // Colors
-    SDL_Color textColor = {0, 0, 0, 255};
-    SDL_Color buttonColor = {200, 200, 200, 255};
-    SDL_Color buttonHoverColor = {180, 180, 180, 255};
+    SDL_Color textColor = {148, 98, 57, 255};
+    SDL_Color buttonColor = {230, 207, 171, 255};
+    SDL_Color buttonHoverColor = {255, 232, 196, 255};
 
     // Title text
     SDL_Surface* titleSurface = TTF_RenderText_Blended(font, "Checkers Game", textColor);
@@ -36,11 +36,11 @@ void startMenu(char player1Name[], char player2Name[]) {
     SDL_Rect titleRect = {(WINDOW_SIZE - 400) / 2, 100, 400, 50};
 
     // Button rectangles
-    SDL_Rect startButton = {(WINDOW_SIZE - 200) / 2, 250, 200, 50};
-    SDL_Rect quitButton = {(WINDOW_SIZE - 200) / 2, 350, 200, 50};
+    SDL_Rect startButton = {(WINDOW_SIZE - 200) / 2, 300, 200, 50};
+    SDL_Rect quitButton = {(WINDOW_SIZE - 200) / 2, 375, 200, 50};
 
     while (menuActive) {
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255); // Clear screen
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Clear screen
         SDL_RenderClear(renderer);
 
         // Render the title
@@ -362,7 +362,7 @@ int main(int argc, char* argv[]) {
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
     TTF_Init();
-    font = TTF_OpenFont("Arial.ttf", 26); // Replace with the actual path
+    font = TTF_OpenFont("Montserrat-ExtraBoldItalic.ttf", 26); // Replace with the actual path
     if (!font) {
         printf("Failed to load font: %s\n", TTF_GetError());
         exit(1);
