@@ -5,9 +5,11 @@
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
 
-#define WINDOW_SIZE 800
+#define WINDOW_WIDTH 800
+#define WINDOW_HEIGHT 850 // Increase this to make the window taller
 #define BOARD_SIZE 8
-#define TILE_SIZE (WINDOW_SIZE / BOARD_SIZE)
+#define TILE_SIZE (WINDOW_WIDTH/ BOARD_SIZE)
+
 #define EMPTY 0
 #define PLAYER1 1
 #define PLAYER2 2
@@ -20,85 +22,40 @@ SDL_Renderer* renderer = NULL;
 int board[BOARD_SIZE][BOARD_SIZE];
 
 void startMenu(char player1Name[], char player2Name[]) {
+    // Load the background texture
+    SDL_Texture* backgroundTexture = IMG_LoadTexture(renderer, "background.png");
+    if (!backgroundTexture) {
+        printf("Failed to load background image: %s\n", IMG_GetError());
+        exit(1);
+    }
+
     SDL_Event e;
     bool menuActive = true;
 
-    // Colors
-    SDL_Color textColor = {0, 0, 0, 255};
-    SDL_Color buttonColor = {200, 200, 200, 255};
-    SDL_Color buttonHoverColor = {180, 180, 180, 255};
-
-    // Title text
-    SDL_Surface* titleSurface = TTF_RenderText_Blended(font, "Checkers Game", textColor);
-    SDL_Texture* titleTexture = SDL_CreateTextureFromSurface(renderer, titleSurface);
-    SDL_FreeSurface(titleSurface);
-
-    SDL_Rect titleRect = {(WINDOW_SIZE - 400) / 2, 100, 400, 50};
-
-    // Button rectangles
-    SDL_Rect startButton = {(WINDOW_SIZE - 200) / 2, 250, 200, 50};
-    SDL_Rect quitButton = {(WINDOW_SIZE - 200) / 2, 350, 200, 50};
+    // Define invisible button areas 
+    SDL_Rect startButton = {167, 620, 200, 100}; // "START GAME" button position
+    SDL_Rect quitButton = {430, 620, 200, 100};  // "QUIT" button position
 
     while (menuActive) {
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255); // Clear screen
-        SDL_RenderClear(renderer);
-
-        // Render the title
-        SDL_RenderCopy(renderer, titleTexture, NULL, &titleRect);
-
-        // Get mouse position
-        int mouseX, mouseY;
-        SDL_GetMouseState(&mouseX, &mouseY);
-
-        // Check for hover and draw buttons
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-
-        // "Start" button
-        if (SDL_PointInRect(&(SDL_Point){mouseX, mouseY}, &startButton)) {
-            SDL_SetRenderDrawColor(renderer, buttonHoverColor.r, buttonHoverColor.g, buttonHoverColor.b, 255);
-        } else {
-            SDL_SetRenderDrawColor(renderer, buttonColor.r, buttonColor.g, buttonColor.b, 255);
-        }
-        SDL_RenderFillRect(renderer, &startButton);
-
-        // "Quit" button
-        if (SDL_PointInRect(&(SDL_Point){mouseX, mouseY}, &quitButton)) {
-            SDL_SetRenderDrawColor(renderer, buttonHoverColor.r, buttonHoverColor.g, buttonHoverColor.b, 255);
-        } else {
-            SDL_SetRenderDrawColor(renderer, buttonColor.r, buttonColor.g, buttonColor.b, 255);
-        }
-        SDL_RenderFillRect(renderer, &quitButton);
-
-        // Render button text
-        SDL_Surface* startSurface = TTF_RenderText_Blended(font, "Start", textColor);
-        SDL_Surface* quitSurface = TTF_RenderText_Blended(font, "Quit", textColor);
-
-        SDL_Texture* startTexture = SDL_CreateTextureFromSurface(renderer, startSurface);
-        SDL_Texture* quitTexture = SDL_CreateTextureFromSurface(renderer, quitSurface);
-
-        SDL_Rect startTextRect = {startButton.x + 50, startButton.y + 10, 100, 30};
-        SDL_Rect quitTextRect = {quitButton.x + 50, quitButton.y + 10, 100, 30};
-
-        SDL_RenderCopy(renderer, startTexture, NULL, &startTextRect);
-        SDL_RenderCopy(renderer, quitTexture, NULL, &quitTextRect);
-
-        SDL_FreeSurface(startSurface);
-        SDL_FreeSurface(quitSurface);
-        SDL_DestroyTexture(startTexture);
-        SDL_DestroyTexture(quitTexture);
-
+        // Render the background
+        SDL_RenderCopy(renderer, backgroundTexture, NULL, NULL);
         SDL_RenderPresent(renderer);
 
         // Handle events
         while (SDL_PollEvent(&e)) {
             if (e.type == SDL_QUIT) {
-                exit(0);
+                exit(0); // Exit the application
             } else if (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_LEFT) {
-                // Check if "Start" button clicked
+                // Get mouse position
+                int mouseX, mouseY;
+                SDL_GetMouseState(&mouseX, &mouseY);
+
+                // Check if "START GAME" button clicked
                 if (SDL_PointInRect(&(SDL_Point){mouseX, mouseY}, &startButton)) {
                     menuActive = false; // Exit menu and start the game
                 }
-                // Check if "Quit" button clicked
+
+                // Check if "QUIT" button clicked
                 if (SDL_PointInRect(&(SDL_Point){mouseX, mouseY}, &quitButton)) {
                     exit(0); // Quit the program
                 }
@@ -106,8 +63,9 @@ void startMenu(char player1Name[], char player2Name[]) {
         }
     }
 
-    SDL_DestroyTexture(titleTexture);
+    SDL_DestroyTexture(backgroundTexture);
 }
+
 
 // Helper function to draw a filled circle in SDL
 void drawCircle(SDL_Renderer* renderer, int centerX, int centerY, int radius) {
@@ -125,8 +83,10 @@ void drawCircle(SDL_Renderer* renderer, int centerX, int centerY, int radius) {
 void countPieces(int* player1Count, int* player2Count) {
     *player1Count = 0;
     *player2Count = 0;
-    for (int y = 0; y < BOARD_SIZE; y++) {
-        for (int x = 0; x < BOARD_SIZE; x++) {
+    for (int y = 0; y < BOARD_SIZE; y++) 
+    {
+        for (int x = 0; x < BOARD_SIZE; x++) 
+        {
             if (board[y][x] == PLAYER1) (*player1Count)++;
             else if (board[y][x] == PLAYER2) (*player2Count)++;
         }
@@ -147,56 +107,98 @@ void initBoard() {
 }
 
 void drawBoard(int currentPlayer) {
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
 
+    // Load textures
+    SDL_Surface* woodTexture1Surface = IMG_Load("dark_wood.png");
+    SDL_Surface* woodTexture2Surface = IMG_Load("light_wood.png");
+    SDL_Surface* player1PieceSurface = IMG_Load("red_piece.png");
+    SDL_Surface* player2PieceSurface = IMG_Load("blue_piece.png");
+
+    SDL_Texture* woodTexture1 = SDL_CreateTextureFromSurface(renderer, woodTexture1Surface);
+    SDL_Texture* woodTexture2 = SDL_CreateTextureFromSurface(renderer, woodTexture2Surface);
+    SDL_Texture* player1Piece = SDL_CreateTextureFromSurface(renderer, player1PieceSurface);
+    SDL_Texture* player2Piece = SDL_CreateTextureFromSurface(renderer, player2PieceSurface);
+
+    // Free surfaces after creating textures
+    SDL_FreeSurface(woodTexture1Surface);
+    SDL_FreeSurface(woodTexture2Surface);
+    SDL_FreeSurface(player1PieceSurface);
+    SDL_FreeSurface(player2PieceSurface);
+
+
     for (int y = 0; y < BOARD_SIZE; y++) {
-        for (int x = 0; x < BOARD_SIZE; x++) {
-            SDL_Rect tileRect = {x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE};
-            if ((x + y) % 2 == 0) {
-                SDL_SetRenderDrawColor(renderer, 148, 98, 57, 255);
-            } else {
-                SDL_SetRenderDrawColor(renderer, 240, 217, 181, 255);
-            }
-            SDL_RenderFillRect(renderer, &tileRect);
+    for (int x = 0; x < BOARD_SIZE; x++) {
+        SDL_Rect tileRect = {x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE};
 
-            int centerX = x * TILE_SIZE + TILE_SIZE / 2;
-            int centerY = y * TILE_SIZE + TILE_SIZE / 2;
-            int radius = TILE_SIZE / 3;
+        // Alternate between wood textures
+        if ((x + y) % 2 == 0) {
+            SDL_RenderCopy(renderer, woodTexture1, NULL, &tileRect);
+        } else {
+            SDL_RenderCopy(renderer, woodTexture2, NULL, &tileRect);
+        }
 
-            if (board[y][x] == PLAYER1) {
-                SDL_SetRenderDrawColor(renderer, 120, 0, 0, 255); // Actual pieces
-                drawCircle(renderer, centerX, centerY, radius+4);
-
-                SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255); // Outlines
-                drawCircle(renderer, centerX, centerY, radius);
-            } else if (board[y][x] == PLAYER2) {
-                SDL_SetRenderDrawColor(renderer, 0, 0, 80, 255);
-                drawCircle(renderer, centerX, centerY, radius+4);
-
-                SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
-                drawCircle(renderer, centerX, centerY, radius);
-            }
+        // Render pieces on top of the tiles
+        if (board[y][x] == PLAYER1) {
+            SDL_Rect pieceRect = {x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE};
+            SDL_RenderCopy(renderer, player1Piece, NULL, &pieceRect);
+        } else if (board[y][x] == PLAYER2) {
+            SDL_Rect pieceRect = {x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE};
+            SDL_RenderCopy(renderer, player2Piece, NULL, &pieceRect);
         }
     }
+}
+
 
     // Display text
-    char statusText[128];
+    char statusLine1[128], statusLine2[128], statusLine3[128];
     int player1Count, player2Count;
     countPieces(&player1Count, &player2Count);
-    sprintf(statusText, "Turn: Player %d  (1=RED, 2=BLUE) --- RED: %d --- BLUE: %d", currentPlayer, player1Count, player2Count);
 
-    SDL_Color textColor = {0, 0, 0, 255};
-    SDL_Surface* textSurface = TTF_RenderText_Blended(font, statusText, textColor);
-    SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
+    // Format each line separately
+    sprintf(statusLine1, "Turn: Player %s", currentPlayer == 1 ? "RED" : "BLUE");
 
-    SDL_Rect textRect = {10, 10, textSurface->w, textSurface->h};
-    SDL_RenderCopy(renderer, textTexture, NULL, &textRect);
+    sprintf(statusLine2, "RED: %d", player1Count);
+    sprintf(statusLine3, "BLUE: %d", player2Count);
 
-    SDL_FreeSurface(textSurface);
-    SDL_DestroyTexture(textTexture);
+    SDL_Color textColor_turn = {255 ,255 ,255 ,255 };
+    SDL_Color textColor_red = {255, 0, 0, 255};
+    SDL_Color textColor_blue = {0, 0, 255, 255};
 
+    // Render and display each line
+    SDL_Surface* textSurface1 = TTF_RenderText_Blended(font, statusLine1, textColor_turn);
+    SDL_Surface* textSurface2 = TTF_RenderText_Blended(font, statusLine2, textColor_red);
+    SDL_Surface* textSurface3 = TTF_RenderText_Blended(font, statusLine3, textColor_blue);
+
+    SDL_Texture* textTexture1 = SDL_CreateTextureFromSurface(renderer, textSurface1);
+    SDL_Texture* textTexture2 = SDL_CreateTextureFromSurface(renderer, textSurface2);
+    SDL_Texture* textTexture3 = SDL_CreateTextureFromSurface(renderer, textSurface3);
+
+    SDL_Rect textRect1 = {280, 810, textSurface1->w, textSurface1->h};  // Line 1 position
+    SDL_Rect textRect2 = {5, 810, textSurface2->w, textSurface2->h};  // Line 2 position (slightly lower)
+    SDL_Rect textRect3 = {673, 810, textSurface3->w, textSurface3->h};  // Line 3 position
+
+    SDL_RenderCopy(renderer, textTexture1, NULL, &textRect1);
+    SDL_RenderCopy(renderer, textTexture2, NULL, &textRect2);
+    SDL_RenderCopy(renderer, textTexture3, NULL, &textRect3);
+
+    // Free resources
+    SDL_FreeSurface(textSurface1);
+    SDL_FreeSurface(textSurface2);
+    SDL_FreeSurface(textSurface3);
+    SDL_DestroyTexture(textTexture1);
+    SDL_DestroyTexture(textTexture2);
+    SDL_DestroyTexture(textTexture3);
+
+    // Update the renderer
     SDL_RenderPresent(renderer);
+
+    SDL_DestroyTexture(woodTexture1);
+    SDL_DestroyTexture(woodTexture2);
+    SDL_DestroyTexture(player1Piece);
+    SDL_DestroyTexture(player2Piece);
+
 }
 
 
@@ -286,7 +288,7 @@ void displayWinner(int winner) {
         sprintf(winnerText, "It's a Draw!");
     }
 
-    SDL_Color textColor = {0, 0, 0, 255};
+    SDL_Color textColor = {0, 255, 255, 255};
     SDL_Surface* textSurface = TTF_RenderText_Blended(font, winnerText, textColor);
     SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
     SDL_FreeSurface(textSurface);
@@ -295,34 +297,35 @@ void displayWinner(int winner) {
     SDL_QueryTexture(textTexture, NULL, NULL, &textWidth, &textHeight);
 
     SDL_Rect textRect = {
-    (WINDOW_SIZE - textWidth) / 2,  // X: Center horizontally
-    (WINDOW_SIZE - textHeight) / 2 - 150, // Y: Shift 50 pixels down
+    (WINDOW_WIDTH - textWidth) / 2,  // X: Center horizontally
+    (WINDOW_HEIGHT - textHeight) / 2 - 100, // Y: Shift 50 pixels down
     textWidth,
     textHeight
     };
 
 
-    SDL_Rect trophyRect = {
-        0,                     // Start at the left edge
-        WINDOW_SIZE,           // Start off-screen
-        WINDOW_SIZE,           // Trophy fills the entire window
-        WINDOW_SIZE
-    };
+   SDL_Rect trophyRect = {
+    0,                     // Start at the left edge
+    WINDOW_HEIGHT,         // Start off-screen below the visible window
+    WINDOW_WIDTH,          // Trophy spans the entire window width
+    WINDOW_HEIGHT          // Trophy spans the entire window height
+};
+
 
     // Animate the trophy sliding up
-    for (int i = 0; i < WINDOW_SIZE; i += 5) {
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    for (int i = 0; i < WINDOW_HEIGHT; i += 5) {
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
 
         // Draw the trophy
-        trophyRect.y = WINDOW_SIZE - i;  // Slide up
+        trophyRect.y = WINDOW_HEIGHT - i;  // Slide up
         SDL_RenderCopy(renderer, trophyTexture, NULL, &trophyRect);
 
         // Draw the winner text
         SDL_RenderCopy(renderer, textTexture, NULL, &textRect);
 
         SDL_RenderPresent(renderer);
-        SDL_Delay(10);  // Delay to create animation effect
+        SDL_Delay(3);  // Delay to create animation effect
     }
 
     SDL_RenderPresent(renderer);
@@ -357,12 +360,15 @@ void gameLoop() {
 }
 
 int main(int argc, char* argv[]) {
-    SDL_Init(SDL_INIT_VIDEO);
-    window = SDL_CreateWindow("Checkers Game", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_SIZE, WINDOW_SIZE, SDL_WINDOW_SHOWN);
-    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+   SDL_Init(SDL_INIT_VIDEO);
+window = SDL_CreateWindow("Checkers Game", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 
+                            WINDOW_WIDTH,           // Use the updated width
+                            WINDOW_HEIGHT,          // Use the updated height     
+                            SDL_WINDOW_SHOWN);
+renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
     TTF_Init();
-    font = TTF_OpenFont("Arial.ttf", 26); // Replace with the actual path
+    font = TTF_OpenFont("Montserrat-ExtraBoldItalic.ttf", 26); // Replace with the actual path
     if (!font) {
         printf("Failed to load font: %s\n", TTF_GetError());
         exit(1);
