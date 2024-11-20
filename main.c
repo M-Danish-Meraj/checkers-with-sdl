@@ -9,11 +9,11 @@
 #define WINDOW_HEIGHT 850 // Increase this to make the window taller
 #define BOARD_SIZE 8
 #define TILE_SIZE (WINDOW_WIDTH/ BOARD_SIZE)
-
 #define EMPTY 0
 #define PLAYER1 1
 #define PLAYER2 2
 #define KING_MASK 4
+
 TTF_Font* font = NULL;
 SDL_Texture* trophyTexture = NULL;
 
@@ -23,7 +23,7 @@ int board[BOARD_SIZE][BOARD_SIZE];
 
 void meme() {
     // Load the meme image
-    SDL_Texture* memeTexture = IMG_LoadTexture(renderer, "meme.png");
+    SDL_Texture* memeTexture = IMG_LoadTexture(renderer, "textures/meme.png");
     if (!memeTexture) {
         printf("Failed to load meme image: %s\n", IMG_GetError());
         return;
@@ -71,7 +71,7 @@ void meme() {
 
 void startMenu() {
     // Load the background texture
-    SDL_Texture* backgroundTexture = IMG_LoadTexture(renderer, "background.png");
+    SDL_Texture* backgroundTexture = IMG_LoadTexture(renderer, "textures/background.png");
     if (!backgroundTexture) {
         printf("Failed to load background image: %s\n", IMG_GetError());
         exit(1);
@@ -155,10 +155,10 @@ void drawBoard(int currentPlayer) {
     SDL_RenderClear(renderer);
 
     // Load textures
-    SDL_Surface* woodTexture1Surface = IMG_Load("dark_wood.png");
-    SDL_Surface* woodTexture2Surface = IMG_Load("light_wood.png");
-    SDL_Surface* player1PieceSurface = IMG_Load("red_piece.png");
-    SDL_Surface* player2PieceSurface = IMG_Load("blue_piece.png");
+    SDL_Surface* woodTexture1Surface = IMG_Load("textures/dark_wood.png");
+    SDL_Surface* woodTexture2Surface = IMG_Load("textures/light_wood.png");
+    SDL_Surface* player1PieceSurface = IMG_Load("textures/red_piece.png");
+    SDL_Surface* player2PieceSurface = IMG_Load("textures/blue_piece.png");
 
     SDL_Texture* woodTexture1 = SDL_CreateTextureFromSurface(renderer, woodTexture1Surface);
     SDL_Texture* woodTexture2 = SDL_CreateTextureFromSurface(renderer, woodTexture2Surface);
@@ -262,8 +262,10 @@ bool isValidMove(int player, int startX, int startY, int endX, int endY) {
     return true;
 }
 
-void movePiece(int startX, int startY, int endX, int endY) {
+bool movePiece(int startX, int startY, int endX, int endY) {
     int player = board[startY][startX];
+    bool captured = false;
+
     board[endY][endX] = player;
     board[startY][startX] = EMPTY;
 
@@ -271,41 +273,14 @@ void movePiece(int startX, int startY, int endX, int endY) {
         int jumpX = (startX + endX) / 2;
         int jumpY = (startY + endY) / 2;
         board[jumpY][jumpX] = EMPTY;
+        captured = true; // Capture occurred
     }
 
     if ((endY == 0 && player == PLAYER1) || (endY == BOARD_SIZE - 1 && player == PLAYER2)) {
         board[endY][endX] |= KING_MASK;
     }
-}
 
-void handlePlayerTurn(int player) {
-    SDL_Event e;
-    bool turnCompleted = false;
-    int startX = -1, startY = -1, endX, endY;
-
-    while (!turnCompleted) {
-        while (SDL_PollEvent(&e)) {
-            if (e.type == SDL_QUIT) exit(0);
-            else if (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_LEFT) {
-                int x = e.button.x / TILE_SIZE;
-                int y = e.button.y / TILE_SIZE;
-                if (startX == -1 && board[y][x] == player) {  // Select piece
-                    startX = x;
-                    startY = y;
-                } else if (startX != -1) {  // Select destination
-                    endX = x;
-                    endY = y;
-                    if (isValidMove(player, startX, startY, endX, endY)) {
-                        movePiece(startX, startY, endX, endY);
-                        turnCompleted = true;
-                    }
-                    startX = -1;
-                }
-            }
-        }
-        drawBoard(player);
-
-    }
+    return captured;
 }
 
 bool hasValidMoves(int player) {
@@ -324,6 +299,13 @@ bool hasValidMoves(int player) {
 }
 
 void displayWinner(int winner) {
+
+    trophyTexture = IMG_LoadTexture(renderer, "textures/trophy.png");
+    if (!trophyTexture) {
+        printf("Failed to load trophy image: %s\n", IMG_GetError());
+        exit(1);
+    }
+
     char winnerText[128];
     if (winner == PLAYER1) {
         sprintf(winnerText, "Player 1 Wins!");
@@ -352,7 +334,7 @@ void displayWinner(int winner) {
     WINDOW_HEIGHT,         // Start off-screen below the visible window
     WINDOW_WIDTH,          // Trophy spans the entire window width
     WINDOW_HEIGHT          // Trophy spans the entire window height
-};
+    };
 
 
     // Animate the trophy sliding up
@@ -377,14 +359,76 @@ void displayWinner(int winner) {
     SDL_DestroyTexture(textTexture);
 }
 
+void handlePlayerTurn(int player) {
+    SDL_Event e;
+    bool turnCompleted = false;
+    int startX = -1, startY = -1, endX, endY;
 
+    while (!turnCompleted) {
+        while (SDL_PollEvent(&e)) {
+            if (e.type == SDL_QUIT) exit(0);
+            else if (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_LEFT) {
+                int x = e.button.x / TILE_SIZE;
+                int y = e.button.y / TILE_SIZE;
+
+                if (startX == -1 && board[y][x] == player) {  // Select piece
+                    startX = x;
+                    startY = y;
+                } else if (startX != -1) {  // Select destination
+                    endX = x;
+                    endY = y;
+
+                    if (isValidMove(player, startX, startY, endX, endY)) {
+                        bool captured = movePiece(startX, startY, endX, endY);
+
+                        // Count pieces after the move
+                        int player1Count = 0, player2Count = 0;
+                        countPieces(&player1Count, &player2Count);
+
+                        // Check if any player has 0 pieces and end the game immediately
+                        if (player1Count == 0 || player2Count == 0) {
+                            int winner = (player1Count > 0) ? PLAYER1 : PLAYER2;
+                            displayWinner(winner);
+                            exit(0);  // Exit the game loop
+                        }
+
+                        // Allow another move if capture occurred
+                        if (captured && hasValidMoves(player)) {
+                            startX = endX;
+                            startY = endY;
+                            drawBoard(player);
+                            continue;
+                        }
+
+                        turnCompleted = true;  // End turn if no capture or no valid moves
+                    }
+                    startX = -1;  // Reset selection
+                }
+            }
+        }
+        drawBoard(player);
+    }
+}
 
 void gameLoop() {
     int currentPlayer = PLAYER1;
+
     while (true) {
         drawBoard(currentPlayer);
         handlePlayerTurn(currentPlayer);
 
+        // Count pieces for both players
+        int player1Count = 0, player2Count = 0;
+        countPieces(&player1Count, &player2Count);
+
+        // Check if any player has zero pieces
+        if (player1Count == 0 || player2Count == 0) {
+            int winner = (player1Count > 0) ? PLAYER1 : PLAYER2;
+            displayWinner(winner);
+            break;
+        }
+
+        // Check if any player has no valid moves
         if (!hasValidMoves(PLAYER1) || !hasValidMoves(PLAYER2)) {
             int winner = PLAYER1;
             if (!hasValidMoves(PLAYER1)) {
@@ -398,6 +442,7 @@ void gameLoop() {
             break;
         }
 
+        // Switch turn to the next player
         currentPlayer = (currentPlayer == PLAYER1) ? PLAYER2 : PLAYER1;
     }
 }
@@ -416,13 +461,6 @@ int main(int argc, char* argv[]) {
         printf("Failed to load font: %s\n", TTF_GetError());
         exit(1);
     }
-
-    trophyTexture = IMG_LoadTexture(renderer, "trophy.png");
-    if (!trophyTexture) {
-        printf("Failed to load trophy image: %s\n", IMG_GetError());
-        exit(1);
-    }
-
 
     // Show the start menu
     startMenu();
