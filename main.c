@@ -21,6 +21,54 @@ SDL_Window* window = NULL;
 SDL_Renderer* renderer = NULL;
 int board[BOARD_SIZE][BOARD_SIZE];
 
+void meme() {
+    // Load the meme image
+    SDL_Texture* memeTexture = IMG_LoadTexture(renderer, "meme.png");
+    if (!memeTexture) {
+        printf("Failed to load meme image: %s\n", IMG_GetError());
+        return;
+    }
+
+    // Clear the screen
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Black background
+    SDL_RenderClear(renderer);
+
+    // Get the texture dimensions
+    int imgWidth, imgHeight;
+    SDL_QueryTexture(memeTexture, NULL, NULL, &imgWidth, &imgHeight);
+
+    // Define the rendering rectangle (centered)
+    SDL_Rect renderQuad = { 
+        (255 - imgWidth) / 2, 
+        (190 - imgHeight) / 2, 
+        WINDOW_WIDTH , 
+        WINDOW_HEIGHT 
+    };
+
+    // Render the meme image
+    SDL_RenderCopy(renderer, memeTexture, NULL, &renderQuad);
+
+    // Present the image to the screen
+    SDL_RenderPresent(renderer);
+
+    // Wait for a short time before returning to the menu
+    SDL_Event e;
+    bool showingMeme = true;
+    while (showingMeme) {
+        while (SDL_PollEvent(&e)) {
+            if (e.type == SDL_QUIT) {
+                exit(0); // Exit application
+            } else if (e.type == SDL_KEYDOWN || e.type == SDL_MOUSEBUTTONDOWN) {
+                showingMeme = false; // Exit meme display
+            }
+        }
+    }
+
+    // Clean up resources
+    SDL_DestroyTexture(memeTexture);
+}
+
+
 void startMenu(char player1Name[], char player2Name[]) {
     // Load the background texture
     SDL_Texture* backgroundTexture = IMG_LoadTexture(renderer, "background.png");
@@ -32,9 +80,10 @@ void startMenu(char player1Name[], char player2Name[]) {
     SDL_Event e;
     bool menuActive = true;
 
-    // Define invisible button areas 
+    // Define button areas
     SDL_Rect startButton = {167, 620, 200, 100}; // "START GAME" button position
     SDL_Rect quitButton = {430, 620, 200, 100};  // "QUIT" button position
+    SDL_Rect memeButton = {350, 375, 100, 100};  // "MEME" button position
 
     while (menuActive) {
         // Render the background
@@ -59,12 +108,20 @@ void startMenu(char player1Name[], char player2Name[]) {
                 if (SDL_PointInRect(&(SDL_Point){mouseX, mouseY}, &quitButton)) {
                     exit(0); // Quit the program
                 }
+
+                // Check if "MEME" button clicked
+                if (SDL_PointInRect(&(SDL_Point){mouseX, mouseY}, &memeButton)) {
+                    meme(); // Call the meme function
+                }
             }
         }
     }
 
     SDL_DestroyTexture(backgroundTexture);
 }
+
+
+
 
 
 void countPieces(int* player1Count, int* player2Count) {
