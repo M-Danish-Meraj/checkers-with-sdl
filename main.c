@@ -29,31 +29,49 @@ void meme() {
         return;
     }
 
-    // Clear the screen
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Black background
-    SDL_RenderClear(renderer);
-
     // Get the texture dimensions
     int imgWidth, imgHeight;
     SDL_QueryTexture(memeTexture, NULL, NULL, &imgWidth, &imgHeight);
 
-    // Define the rendering rectangle (centered)
-    SDL_Rect renderQuad = { 
-        (255 - imgWidth) / 2, 
-        (190 - imgHeight) / 2, 
-        WINDOW_WIDTH , 
-        WINDOW_HEIGHT 
-    };
+    // Get the window dimensions
+    int windowWidth, windowHeight;
+    SDL_GetRendererOutputSize(renderer, &windowWidth, &windowHeight);
 
-    // Render the meme image
-    SDL_RenderCopy(renderer, memeTexture, NULL, &renderQuad);
+    // Define the initial scale for the zoom-in animation
+    float scale = 1.5f; // Start at 10% of the original size
+    float scaleStep = 0.05f; // Increment per frame
 
-    // Present the image to the screen
-    SDL_RenderPresent(renderer);
+    // Animation loop
+    while (scale < 4.1f) {
+        // Clear the screen
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Black background
+        SDL_RenderClear(renderer);
 
-    // Wait for a short time before returning to the menu
-    SDL_Event e;
+        // Calculate the size and position for the current scale
+        int currentWidth = (int)(imgWidth * scale);
+        int currentHeight = (int)(imgHeight * scale);
+        SDL_Rect renderQuad = {
+            (windowWidth - currentWidth) / 2, // Center horizontally
+            (windowHeight - currentHeight) / 2, // Center vertically
+            currentWidth,
+            currentHeight
+        };
+
+        // Render the scaled image
+        SDL_RenderCopy(renderer, memeTexture, NULL, &renderQuad);
+        SDL_RenderPresent(renderer);
+
+        // Increase the scale for the next frame
+        scale += scaleStep;
+        if (scale > 4.1f) scale = 4.1f; // Clamp to final size
+
+        // Delay to control the animation speed
+        SDL_Delay(20); // ~60 FPS
+    }
+
+    // Display the final image until user input
     bool showingMeme = true;
+    SDL_Event e;
     while (showingMeme) {
         while (SDL_PollEvent(&e)) {
             if (e.type == SDL_QUIT) {
@@ -67,6 +85,65 @@ void meme() {
     // Clean up resources
     SDL_DestroyTexture(memeTexture);
 }
+
+
+void showCredits() {
+    // Load the credits image
+    SDL_Texture* creditsTexture = IMG_LoadTexture(renderer, "textures/credits.png");
+    if (!creditsTexture) {
+        printf("Failed to load credits image: %s\n", IMG_GetError());
+        return;
+    }
+
+    // Get the dimensions of the texture and the window
+    int textureWidth, textureHeight;
+    SDL_QueryTexture(creditsTexture, NULL, NULL, &textureWidth, &textureHeight);
+
+    int windowWidth, windowHeight;
+    SDL_GetRendererOutputSize(renderer, &windowWidth, &windowHeight);
+
+    // Set up the initial position for the animation (off-screen at the bottom)
+    SDL_Rect destRect = {0, windowHeight, textureWidth, textureHeight};
+
+    // Animation parameters
+    int finalY = (windowHeight - textureHeight) / 2; // Center vertically
+    int speed = 5; // Pixels per frame
+
+    // Animation loop
+    while (destRect.y > finalY) {
+        // Clear the screen
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Black background
+        SDL_RenderClear(renderer);
+
+        // Move the texture upwards
+        destRect.y -= speed;
+        if (destRect.y < finalY) destRect.y = finalY; // Clamp to final position
+
+        // Render the credits texture
+        SDL_RenderCopy(renderer, creditsTexture, NULL, &destRect);
+        SDL_RenderPresent(renderer);
+
+        // Delay to control the animation speed
+        SDL_Delay(16); // ~60 FPS
+    }
+
+    // Wait for user input to close the credits screen
+    SDL_Event e;
+    bool creditsActive = true;
+    while (creditsActive) {
+        while (SDL_PollEvent(&e)) {
+            if (e.type == SDL_QUIT) {
+                exit(0); // Exit the application
+            } else if (e.type == SDL_KEYDOWN || e.type == SDL_MOUSEBUTTONDOWN) {
+                creditsActive = false; // Exit credits screen
+            }
+        }
+    }
+
+    SDL_DestroyTexture(creditsTexture);
+}
+
+
 
 
 void startMenu() {
@@ -84,10 +161,29 @@ void startMenu() {
     SDL_Rect startButton = {167, 620, 200, 100}; // "START GAME" button position
     SDL_Rect quitButton = {430, 620, 200, 100};  // "QUIT" button position
     SDL_Rect memeButton = {350, 375, 100, 100};  // "MEME" button position
+    SDL_Rect moreButton = {650, 760, 100, 35};   // "More" button position
 
     while (menuActive) {
         // Render the background
         SDL_RenderCopy(renderer, backgroundTexture, NULL, NULL);
+
+        // Render the "More" button
+        SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255); // Light gray
+        SDL_Rect moreButtonBorder = {moreButton.x - 2, moreButton.y - 2, moreButton.w + 4, moreButton.h + 4};
+        SDL_RenderFillRect(renderer, &moreButtonBorder);
+
+        SDL_SetRenderDrawColor(renderer, 100, 100, 100, 255); // Darker gray
+        SDL_RenderFillRect(renderer, &moreButton);
+
+        // Render the text "More" on the button
+        SDL_Surface* textSurface = TTF_RenderText_Blended(font, "MORE", (SDL_Color){255, 255, 255, 255});
+        SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
+        SDL_Rect textRect = {moreButton.x +17 , moreButton.y + 5 , 70, 25}; // Text centered on the button
+        SDL_RenderCopy(renderer, textTexture, NULL, &textRect);
+
+        SDL_FreeSurface(textSurface);
+        SDL_DestroyTexture(textTexture);
+
         SDL_RenderPresent(renderer);
 
         // Handle events
@@ -113,16 +209,17 @@ void startMenu() {
                 if (SDL_PointInRect(&(SDL_Point){mouseX, mouseY}, &memeButton)) {
                     meme(); // Call the meme function
                 }
+
+                // Check if "More" button clicked
+                if (SDL_PointInRect(&(SDL_Point){mouseX, mouseY}, &moreButton)) {
+                    showCredits(); // Show the credits window
+                }
             }
         }
     }
 
     SDL_DestroyTexture(backgroundTexture);
 }
-
-
-
-
 
 void countPieces(int* player1Count, int* player2Count) {
     *player1Count = 0;
@@ -136,8 +233,6 @@ void countPieces(int* player1Count, int* player2Count) {
         }
     }
 }
-
-
 
 void initBoard() {
     // Initialize an 8x8 board with players' pieces
@@ -173,26 +268,26 @@ void drawBoard(int currentPlayer) {
 
 
     for (int y = 0; y < BOARD_SIZE; y++) {
-    for (int x = 0; x < BOARD_SIZE; x++) {
-        SDL_Rect tileRect = {x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE};
+        for (int x = 0; x < BOARD_SIZE; x++) {
+            SDL_Rect tileRect = {x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE};
 
-        // Alternate between wood textures
-        if ((x + y) % 2 == 0) {
-            SDL_RenderCopy(renderer, woodTexture1, NULL, &tileRect);
-        } else {
-            SDL_RenderCopy(renderer, woodTexture2, NULL, &tileRect);
-        }
+            // Alternate between wood textures
+            if ((x + y) % 2 == 0) {
+                SDL_RenderCopy(renderer, woodTexture1, NULL, &tileRect);
+            } else {
+                SDL_RenderCopy(renderer, woodTexture2, NULL, &tileRect);
+            }
 
-        // Render pieces on top of the tiles
-        if (board[y][x] == PLAYER1) {
-            SDL_Rect pieceRect = {x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE};
-            SDL_RenderCopy(renderer, player1Piece, NULL, &pieceRect);
-        } else if (board[y][x] == PLAYER2) {
-            SDL_Rect pieceRect = {x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE};
-            SDL_RenderCopy(renderer, player2Piece, NULL, &pieceRect);
+            // Render pieces on top of the tiles
+            if (board[y][x] == PLAYER1) {
+                SDL_Rect pieceRect = {x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE};
+                SDL_RenderCopy(renderer, player1Piece, NULL, &pieceRect);
+            } else if (board[y][x] == PLAYER2) {
+                SDL_Rect pieceRect = {x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE};
+                SDL_RenderCopy(renderer, player2Piece, NULL, &pieceRect);
+                }
         }
     }
-}
 
 
     // Display text
@@ -262,10 +357,54 @@ bool isValidMove(int player, int startX, int startY, int endX, int endY) {
     return true;
 }
 
+void animatePieceMovement(int startX, int startY, int endX, int endY, int player) {
+    int frames = 2; // number of frames for animation
+    float deltaX = (endX - startX) * TILE_SIZE / (float)frames;
+    float deltaY = (endY - startY) * TILE_SIZE / (float)frames;
+
+    float currentX = startX * TILE_SIZE;
+    float currentY = startY * TILE_SIZE;
+
+    // Preload piece texture for better performance
+    SDL_Texture* pieceTexture = (player == PLAYER1)
+        ? IMG_LoadTexture(renderer, "textures/red_piece.png")
+        : IMG_LoadTexture(renderer, "textures/blue_piece.png");
+
+    for (int i = 0; i <= frames; i++) {
+        // Clear and redraw the board
+        drawBoard(player);
+
+        // Render the moving piece at the current position
+        SDL_Rect pieceRect = {
+            (int)currentX,
+            (int)currentY,
+            TILE_SIZE,
+            TILE_SIZE
+        };
+        SDL_RenderCopy(renderer, pieceTexture, NULL, &pieceRect);
+
+        // Present the updated frame
+        SDL_RenderPresent(renderer);
+
+        // Update position for the next frame
+        currentX += deltaX;
+        currentY += deltaY;
+    }
+
+    // Cleanup
+    SDL_DestroyTexture(pieceTexture);
+}
+
+
+
 bool movePiece(int startX, int startY, int endX, int endY) {
     int player = board[startY][startX];
     bool captured = false;
 
+    // Animate the piece movement
+    animatePieceMovement(startX, startY, endX, endY, player);
+
+    // Update the board state
     board[endY][endX] = player;
     board[startY][startX] = EMPTY;
 
@@ -282,6 +421,8 @@ bool movePiece(int startX, int startY, int endX, int endY) {
 
     return captured;
 }
+
+
 
 bool hasValidMoves(int player) {
     for (int y = 0; y < BOARD_SIZE; y++) {
@@ -449,7 +590,7 @@ void gameLoop() {
 
 int main(int argc, char* argv[]) {
    SDL_Init(SDL_INIT_VIDEO);
-    window = SDL_CreateWindow("Checkers Game", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 
+    window = SDL_CreateWindow("Checkers by Bots with Dots", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 
                                 WINDOW_WIDTH,           
                                 WINDOW_HEIGHT,           
                                 SDL_WINDOW_SHOWN);
