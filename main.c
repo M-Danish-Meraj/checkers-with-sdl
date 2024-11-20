@@ -9,11 +9,11 @@
 #define WINDOW_HEIGHT 850 // Increase this to make the window taller
 #define BOARD_SIZE 8
 #define TILE_SIZE (WINDOW_WIDTH/ BOARD_SIZE)
-
 #define EMPTY 0
 #define PLAYER1 1
 #define PLAYER2 2
 #define KING_MASK 4
+
 TTF_Font* font = NULL;
 SDL_Texture* trophyTexture = NULL;
 
@@ -23,37 +23,55 @@ int board[BOARD_SIZE][BOARD_SIZE];
 
 void meme() {
     // Load the meme image
-    SDL_Texture* memeTexture = IMG_LoadTexture(renderer, "meme.png");
+    SDL_Texture* memeTexture = IMG_LoadTexture(renderer, "textures/meme.png");
     if (!memeTexture) {
         printf("Failed to load meme image: %s\n", IMG_GetError());
         return;
     }
 
-    // Clear the screen
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Black background
-    SDL_RenderClear(renderer);
-
     // Get the texture dimensions
     int imgWidth, imgHeight;
     SDL_QueryTexture(memeTexture, NULL, NULL, &imgWidth, &imgHeight);
 
-    // Define the rendering rectangle (centered)
-    SDL_Rect renderQuad = { 
-        (255 - imgWidth) / 2, 
-        (190 - imgHeight) / 2, 
-        WINDOW_WIDTH , 
-        WINDOW_HEIGHT 
-    };
+    // Get the window dimensions
+    int windowWidth, windowHeight;
+    SDL_GetRendererOutputSize(renderer, &windowWidth, &windowHeight);
 
-    // Render the meme image
-    SDL_RenderCopy(renderer, memeTexture, NULL, &renderQuad);
+    // Define the initial scale for the zoom-in animation
+    float scale = 1.5f; // Start at 10% of the original size
+    float scaleStep = 0.05f; // Increment per frame
 
-    // Present the image to the screen
-    SDL_RenderPresent(renderer);
+    // Animation loop
+    while (scale < 4.1f) {
+        // Clear the screen
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Black background
+        SDL_RenderClear(renderer);
 
-    // Wait for a short time before returning to the menu
-    SDL_Event e;
+        // Calculate the size and position for the current scale
+        int currentWidth = (int)(imgWidth * scale);
+        int currentHeight = (int)(imgHeight * scale);
+        SDL_Rect renderQuad = {
+            (windowWidth - currentWidth) / 2, // Center horizontally
+            (windowHeight - currentHeight) / 2, // Center vertically
+            currentWidth,
+            currentHeight
+        };
+
+        // Render the scaled image
+        SDL_RenderCopy(renderer, memeTexture, NULL, &renderQuad);
+        SDL_RenderPresent(renderer);
+
+        // Increase the scale for the next frame
+        scale += scaleStep;
+        if (scale > 4.1f) scale = 4.1f; // Clamp to final size
+
+        // Delay to control the animation speed
+        SDL_Delay(20); // ~60 FPS
+    }
+
+    // Display the final image until user input
     bool showingMeme = true;
+    SDL_Event e;
     while (showingMeme) {
         while (SDL_PollEvent(&e)) {
             if (e.type == SDL_QUIT) {
@@ -69,9 +87,68 @@ void meme() {
 }
 
 
-void startMenu(char player1Name[], char player2Name[]) {
+void showCredits() {
+    // Load the credits image
+    SDL_Texture* creditsTexture = IMG_LoadTexture(renderer, "textures/credits.png");
+    if (!creditsTexture) {
+        printf("Failed to load credits image: %s\n", IMG_GetError());
+        return;
+    }
+
+    // Get the dimensions of the texture and the window
+    int textureWidth, textureHeight;
+    SDL_QueryTexture(creditsTexture, NULL, NULL, &textureWidth, &textureHeight);
+
+    int windowWidth, windowHeight;
+    SDL_GetRendererOutputSize(renderer, &windowWidth, &windowHeight);
+
+    // Set up the initial position for the animation (off-screen at the bottom)
+    SDL_Rect destRect = {0, windowHeight, textureWidth, textureHeight};
+
+    // Animation parameters
+    int finalY = (windowHeight - textureHeight) / 2; // Center vertically
+    int speed = 5; // Pixels per frame
+
+    // Animation loop
+    while (destRect.y > finalY) {
+        // Clear the screen
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Black background
+        SDL_RenderClear(renderer);
+
+        // Move the texture upwards
+        destRect.y -= speed;
+        if (destRect.y < finalY) destRect.y = finalY; // Clamp to final position
+
+        // Render the credits texture
+        SDL_RenderCopy(renderer, creditsTexture, NULL, &destRect);
+        SDL_RenderPresent(renderer);
+
+        // Delay to control the animation speed
+        SDL_Delay(16); // ~60 FPS
+    }
+
+    // Wait for user input to close the credits screen
+    SDL_Event e;
+    bool creditsActive = true;
+    while (creditsActive) {
+        while (SDL_PollEvent(&e)) {
+            if (e.type == SDL_QUIT) {
+                exit(0); // Exit the application
+            } else if (e.type == SDL_KEYDOWN || e.type == SDL_MOUSEBUTTONDOWN) {
+                creditsActive = false; // Exit credits screen
+            }
+        }
+    }
+
+    SDL_DestroyTexture(creditsTexture);
+}
+
+
+
+
+void startMenu() {
     // Load the background texture
-    SDL_Texture* backgroundTexture = IMG_LoadTexture(renderer, "background.png");
+    SDL_Texture* backgroundTexture = IMG_LoadTexture(renderer, "textures/background.png");
     if (!backgroundTexture) {
         printf("Failed to load background image: %s\n", IMG_GetError());
         exit(1);
@@ -84,10 +161,29 @@ void startMenu(char player1Name[], char player2Name[]) {
     SDL_Rect startButton = {167, 620, 200, 100}; // "START GAME" button position
     SDL_Rect quitButton = {430, 620, 200, 100};  // "QUIT" button position
     SDL_Rect memeButton = {350, 375, 100, 100};  // "MEME" button position
+    SDL_Rect moreButton = {650, 760, 100, 35};   // "More" button position
 
     while (menuActive) {
         // Render the background
         SDL_RenderCopy(renderer, backgroundTexture, NULL, NULL);
+
+        // Render the "More" button
+        SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255); // Light gray
+        SDL_Rect moreButtonBorder = {moreButton.x - 2, moreButton.y - 2, moreButton.w + 4, moreButton.h + 4};
+        SDL_RenderFillRect(renderer, &moreButtonBorder);
+
+        SDL_SetRenderDrawColor(renderer, 100, 100, 100, 255); // Darker gray
+        SDL_RenderFillRect(renderer, &moreButton);
+
+        // Render the text "More" on the button
+        SDL_Surface* textSurface = TTF_RenderText_Blended(font, "MORE", (SDL_Color){255, 255, 255, 255});
+        SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
+        SDL_Rect textRect = {moreButton.x +17 , moreButton.y + 5 , 70, 25}; // Text centered on the button
+        SDL_RenderCopy(renderer, textTexture, NULL, &textRect);
+
+        SDL_FreeSurface(textSurface);
+        SDL_DestroyTexture(textTexture);
+
         SDL_RenderPresent(renderer);
 
         // Handle events
@@ -113,16 +209,17 @@ void startMenu(char player1Name[], char player2Name[]) {
                 if (SDL_PointInRect(&(SDL_Point){mouseX, mouseY}, &memeButton)) {
                     meme(); // Call the meme function
                 }
+
+                // Check if "More" button clicked
+                if (SDL_PointInRect(&(SDL_Point){mouseX, mouseY}, &moreButton)) {
+                    showCredits(); // Show the credits window
+                }
             }
         }
     }
 
     SDL_DestroyTexture(backgroundTexture);
 }
-
-
-
-
 
 void countPieces(int* player1Count, int* player2Count) {
     *player1Count = 0;
@@ -136,8 +233,6 @@ void countPieces(int* player1Count, int* player2Count) {
         }
     }
 }
-
-
 
 void initBoard() {
     // Initialize an 8x8 board with players' pieces
@@ -155,10 +250,10 @@ void drawBoard(int currentPlayer) {
     SDL_RenderClear(renderer);
 
     // Load textures
-    SDL_Surface* woodTexture1Surface = IMG_Load("dark_wood.png");
-    SDL_Surface* woodTexture2Surface = IMG_Load("light_wood.png");
-    SDL_Surface* player1PieceSurface = IMG_Load("red_piece.png");
-    SDL_Surface* player2PieceSurface = IMG_Load("blue_piece.png");
+    SDL_Surface* woodTexture1Surface = IMG_Load("textures/dark_wood.png");
+    SDL_Surface* woodTexture2Surface = IMG_Load("textures/light_wood.png");
+    SDL_Surface* player1PieceSurface = IMG_Load("textures/red_piece.png");
+    SDL_Surface* player2PieceSurface = IMG_Load("textures/blue_piece.png");
 
     SDL_Texture* woodTexture1 = SDL_CreateTextureFromSurface(renderer, woodTexture1Surface);
     SDL_Texture* woodTexture2 = SDL_CreateTextureFromSurface(renderer, woodTexture2Surface);
@@ -173,26 +268,26 @@ void drawBoard(int currentPlayer) {
 
 
     for (int y = 0; y < BOARD_SIZE; y++) {
-    for (int x = 0; x < BOARD_SIZE; x++) {
-        SDL_Rect tileRect = {x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE};
+        for (int x = 0; x < BOARD_SIZE; x++) {
+            SDL_Rect tileRect = {x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE};
 
-        // Alternate between wood textures
-        if ((x + y) % 2 == 0) {
-            SDL_RenderCopy(renderer, woodTexture1, NULL, &tileRect);
-        } else {
-            SDL_RenderCopy(renderer, woodTexture2, NULL, &tileRect);
-        }
+            // Alternate between wood textures
+            if ((x + y) % 2 == 0) {
+                SDL_RenderCopy(renderer, woodTexture1, NULL, &tileRect);
+            } else {
+                SDL_RenderCopy(renderer, woodTexture2, NULL, &tileRect);
+            }
 
-        // Render pieces on top of the tiles
-        if (board[y][x] == PLAYER1) {
-            SDL_Rect pieceRect = {x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE};
-            SDL_RenderCopy(renderer, player1Piece, NULL, &pieceRect);
-        } else if (board[y][x] == PLAYER2) {
-            SDL_Rect pieceRect = {x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE};
-            SDL_RenderCopy(renderer, player2Piece, NULL, &pieceRect);
+            // Render pieces on top of the tiles
+            if (board[y][x] == PLAYER1) {
+                SDL_Rect pieceRect = {x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE};
+                SDL_RenderCopy(renderer, player1Piece, NULL, &pieceRect);
+            } else if (board[y][x] == PLAYER2) {
+                SDL_Rect pieceRect = {x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE};
+                SDL_RenderCopy(renderer, player2Piece, NULL, &pieceRect);
+                }
         }
     }
-}
 
 
     // Display text
@@ -205,11 +300,13 @@ void drawBoard(int currentPlayer) {
     sprintf(statusLine2, "RED: %d", player1Count);
     sprintf(statusLine3, "BLUE: %d", player2Count);
 
-    SDL_Color textColor_turn = {255 ,255 ,255 ,255 };
+    SDL_Color textColor_turn = {255 ,0 ,0 ,255 };
+    if(currentPlayer!=1)
+        textColor_turn = (SDL_Color){0, 0, 255, 255};
     SDL_Color textColor_red = {255, 0, 0, 255};
     SDL_Color textColor_blue = {0, 0, 255, 255};
 
-    // Render and display each line
+    // Render and display each liness
     SDL_Surface* textSurface1 = TTF_RenderText_Blended(font, statusLine1, textColor_turn);
     SDL_Surface* textSurface2 = TTF_RenderText_Blended(font, statusLine2, textColor_red);
     SDL_Surface* textSurface3 = TTF_RenderText_Blended(font, statusLine3, textColor_blue);
@@ -218,9 +315,9 @@ void drawBoard(int currentPlayer) {
     SDL_Texture* textTexture2 = SDL_CreateTextureFromSurface(renderer, textSurface2);
     SDL_Texture* textTexture3 = SDL_CreateTextureFromSurface(renderer, textSurface3);
 
-    SDL_Rect textRect1 = {280, 810, textSurface1->w, textSurface1->h};  // Line 1 position
-    SDL_Rect textRect2 = {5, 810, textSurface2->w, textSurface2->h};  // Line 2 position (slightly lower)
-    SDL_Rect textRect3 = {673, 810, textSurface3->w, textSurface3->h};  // Line 3 position
+    SDL_Rect textRect1 = {260, 805, 250, 35};  // Line 1 position
+    SDL_Rect textRect2 = {17, 805, 100, 35};  // Line 2 position (slightly lower)
+    SDL_Rect textRect3 = {673, 805, 100, 35};  // Line 3 position
 
     SDL_RenderCopy(renderer, textTexture1, NULL, &textRect1);
     SDL_RenderCopy(renderer, textTexture2, NULL, &textRect2);
@@ -260,8 +357,54 @@ bool isValidMove(int player, int startX, int startY, int endX, int endY) {
     return true;
 }
 
-void movePiece(int startX, int startY, int endX, int endY) {
+void animatePieceMovement(int startX, int startY, int endX, int endY, int player) {
+    int frames = 2; // number of frames for animation
+    float deltaX = (endX - startX) * TILE_SIZE / (float)frames;
+    float deltaY = (endY - startY) * TILE_SIZE / (float)frames;
+
+    float currentX = startX * TILE_SIZE;
+    float currentY = startY * TILE_SIZE;
+
+    // Preload piece texture for better performance
+    SDL_Texture* pieceTexture = (player == PLAYER1)
+        ? IMG_LoadTexture(renderer, "textures/red_piece.png")
+        : IMG_LoadTexture(renderer, "textures/blue_piece.png");
+
+    for (int i = 0; i <= frames; i++) {
+        // Clear and redraw the board
+        drawBoard(player);
+
+        // Render the moving piece at the current position
+        SDL_Rect pieceRect = {
+            (int)currentX,
+            (int)currentY,
+            TILE_SIZE,
+            TILE_SIZE
+        };
+        SDL_RenderCopy(renderer, pieceTexture, NULL, &pieceRect);
+
+        // Present the updated frame
+        SDL_RenderPresent(renderer);
+
+        // Update position for the next frame
+        currentX += deltaX;
+        currentY += deltaY;
+    }
+
+    // Cleanup
+    SDL_DestroyTexture(pieceTexture);
+}
+
+
+
+bool movePiece(int startX, int startY, int endX, int endY) {
     int player = board[startY][startX];
+    bool captured = false;
+
+    // Animate the piece movement
+    animatePieceMovement(startX, startY, endX, endY, player);
+
+    // Update the board state
     board[endY][endX] = player;
     board[startY][startX] = EMPTY;
 
@@ -269,42 +412,17 @@ void movePiece(int startX, int startY, int endX, int endY) {
         int jumpX = (startX + endX) / 2;
         int jumpY = (startY + endY) / 2;
         board[jumpY][jumpX] = EMPTY;
+        captured = true; // Capture occurred
     }
 
     if ((endY == 0 && player == PLAYER1) || (endY == BOARD_SIZE - 1 && player == PLAYER2)) {
         board[endY][endX] |= KING_MASK;
     }
+
+    return captured;
 }
 
-void handlePlayerTurn(int player) {
-    SDL_Event e;
-    bool turnCompleted = false;
-    int startX = -1, startY = -1, endX, endY;
 
-    while (!turnCompleted) {
-        while (SDL_PollEvent(&e)) {
-            if (e.type == SDL_QUIT) exit(0);
-            else if (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_LEFT) {
-                int x = e.button.x / TILE_SIZE;
-                int y = e.button.y / TILE_SIZE;
-                if (startX == -1 && board[y][x] == player) {  // Select piece
-                    startX = x;
-                    startY = y;
-                } else if (startX != -1) {  // Select destination
-                    endX = x;
-                    endY = y;
-                    if (isValidMove(player, startX, startY, endX, endY)) {
-                        movePiece(startX, startY, endX, endY);
-                        turnCompleted = true;
-                    }
-                    startX = -1;
-                }
-            }
-        }
-        drawBoard(player);
-
-    }
-}
 
 bool hasValidMoves(int player) {
     for (int y = 0; y < BOARD_SIZE; y++) {
@@ -322,6 +440,13 @@ bool hasValidMoves(int player) {
 }
 
 void displayWinner(int winner) {
+
+    trophyTexture = IMG_LoadTexture(renderer, "textures/trophy.png");
+    if (!trophyTexture) {
+        printf("Failed to load trophy image: %s\n", IMG_GetError());
+        exit(1);
+    }
+
     char winnerText[128];
     if (winner == PLAYER1) {
         sprintf(winnerText, "Player 1 Wins!");
@@ -331,20 +456,18 @@ void displayWinner(int winner) {
         sprintf(winnerText, "It's a Draw!");
     }
 
-    SDL_Color textColor = {0, 255, 255, 255};
-    SDL_Surface* textSurface = TTF_RenderText_Blended(font, winnerText, textColor);
+    SDL_Color textColor_winner = {255 ,0 ,0 ,255 };
+    if(winner!=1)
+        textColor_winner = (SDL_Color){0, 0, 255, 255};
+
+    SDL_Surface* textSurface = TTF_RenderText_Blended(font, winnerText, textColor_winner);
     SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
     SDL_FreeSurface(textSurface);
 
     int textWidth, textHeight;
     SDL_QueryTexture(textTexture, NULL, NULL, &textWidth, &textHeight);
 
-    SDL_Rect textRect = {
-    (WINDOW_WIDTH - textWidth) / 2,  // X: Center horizontally
-    (WINDOW_HEIGHT - textHeight) / 2 - 100, // Y: Shift 50 pixels down
-    textWidth,
-    textHeight
-    };
+    SDL_Rect textRect = { 120, 210, textWidth+100, textHeight+100};
 
 
    SDL_Rect trophyRect = {
@@ -352,7 +475,7 @@ void displayWinner(int winner) {
     WINDOW_HEIGHT,         // Start off-screen below the visible window
     WINDOW_WIDTH,          // Trophy spans the entire window width
     WINDOW_HEIGHT          // Trophy spans the entire window height
-};
+    };
 
 
     // Animate the trophy sliding up
@@ -372,19 +495,81 @@ void displayWinner(int winner) {
     }
 
     SDL_RenderPresent(renderer);
-    SDL_Delay(5000);  // Pause for 5 seconds before exiting
+    SDL_Delay(20000);  // Pause for 5 seconds before exiting
 
     SDL_DestroyTexture(textTexture);
 }
 
+void handlePlayerTurn(int player) {
+    SDL_Event e;
+    bool turnCompleted = false;
+    int startX = -1, startY = -1, endX, endY;
 
+    while (!turnCompleted) {
+        while (SDL_PollEvent(&e)) {
+            if (e.type == SDL_QUIT) exit(0);
+            else if (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_LEFT) {
+                int x = e.button.x / TILE_SIZE;
+                int y = e.button.y / TILE_SIZE;
+
+                if (startX == -1 && board[y][x] == player) {  // Select piece
+                    startX = x;
+                    startY = y;
+                } else if (startX != -1) {  // Select destination
+                    endX = x;
+                    endY = y;
+
+                    if (isValidMove(player, startX, startY, endX, endY)) {
+                        bool captured = movePiece(startX, startY, endX, endY);
+
+                        // Count pieces after the move
+                        int player1Count = 0, player2Count = 0;
+                        countPieces(&player1Count, &player2Count);
+
+                        // Check if any player has 0 pieces and end the game immediately
+                        if (player1Count == 0 || player2Count == 0) {
+                            int winner = (player1Count > 0) ? PLAYER1 : PLAYER2;
+                            displayWinner(winner);
+                            exit(0);  // Exit the game loop
+                        }
+
+                        // Allow another move if capture occurred
+                        if (captured && hasValidMoves(player)) {
+                            startX = endX;
+                            startY = endY;
+                            drawBoard(player);
+                            continue;
+                        }
+
+                        turnCompleted = true;  // End turn if no capture or no valid moves
+                    }
+                    startX = -1;  // Reset selection
+                }
+            }
+        }
+        drawBoard(player);
+    }
+}
 
 void gameLoop() {
     int currentPlayer = PLAYER1;
+
     while (true) {
         drawBoard(currentPlayer);
         handlePlayerTurn(currentPlayer);
 
+        // Count pieces for both players
+        int player1Count = 0, player2Count = 0;
+        countPieces(&player1Count, &player2Count);
+
+        // Check if any player has zero pieces
+        if (player1Count == 0 || player2Count == 0) {
+            int winner = (player1Count > 0) ? PLAYER1 : PLAYER2;
+            displayWinner(winner);
+            break;
+        }
+
+        // Check if any player has no valid moves
         if (!hasValidMoves(PLAYER1) || !hasValidMoves(PLAYER2)) {
             int winner = PLAYER1;
             if (!hasValidMoves(PLAYER1)) {
@@ -398,36 +583,28 @@ void gameLoop() {
             break;
         }
 
+        // Switch turn to the next player
         currentPlayer = (currentPlayer == PLAYER1) ? PLAYER2 : PLAYER1;
     }
 }
 
 int main(int argc, char* argv[]) {
    SDL_Init(SDL_INIT_VIDEO);
-window = SDL_CreateWindow("Checkers Game", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 
-                            WINDOW_WIDTH,           // Use the updated width
-                            WINDOW_HEIGHT,          // Use the updated height     
-                            SDL_WINDOW_SHOWN);
-renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    window = SDL_CreateWindow("Checkers by Bots with Dots", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 
+                                WINDOW_WIDTH,           
+                                WINDOW_HEIGHT,           
+                                SDL_WINDOW_SHOWN);
+    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
     TTF_Init();
-    font = TTF_OpenFont("Montserrat-ExtraBoldItalic.ttf", 26); // Replace with the actual path
+    font = TTF_OpenFont("Montserrat-ExtraBoldItalic.ttf", 64); 
     if (!font) {
         printf("Failed to load font: %s\n", TTF_GetError());
         exit(1);
     }
 
-    trophyTexture = IMG_LoadTexture(renderer, "trophy.png");
-    if (!trophyTexture) {
-        printf("Failed to load trophy image: %s\n", IMG_GetError());
-        exit(1);
-    }
-
-    char player1Name[50] = "Player 1";
-    char player2Name[50] = "Player 2";
-
     // Show the start menu
-    startMenu(player1Name, player2Name);
+    startMenu();
 
     // Initialize and start the game
     initBoard();
