@@ -67,19 +67,6 @@ void startMenu(char player1Name[], char player2Name[]) {
 }
 
 
-// Helper function to draw a filled circle in SDL
-void drawCircle(SDL_Renderer* renderer, int centerX, int centerY, int radius) {
-    for (int w = 0; w < radius * 2; w++) {
-        for (int h = 0; h < radius * 2; h++) {
-            int dx = radius - w; // Horizontal offset
-            int dy = radius - h; // Vertical offset
-            if ((dx * dx + dy * dy) <= (radius * radius)) {
-                SDL_RenderDrawPoint(renderer, centerX + dx, centerY + dy);
-            }
-        }
-    }
-}
-
 void countPieces(int* player1Count, int* player2Count) {
     *player1Count = 0;
     *player2Count = 0;
@@ -158,7 +145,6 @@ void drawBoard(int currentPlayer) {
 
     // Format each line separately
     sprintf(statusLine1, "Turn: Player %s", currentPlayer == 1 ? "RED" : "BLUE");
-
     sprintf(statusLine2, "RED: %d", player1Count);
     sprintf(statusLine3, "BLUE: %d", player2Count);
 
