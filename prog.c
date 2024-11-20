@@ -21,7 +21,55 @@ SDL_Window* window = NULL;
 SDL_Renderer* renderer = NULL;
 int board[BOARD_SIZE][BOARD_SIZE];
 
-void startMenu(char player1Name[], char player2Name[]) {
+void meme() {
+    // Load the meme image
+    SDL_Texture* memeTexture = IMG_LoadTexture(renderer, "meme.png");
+    if (!memeTexture) {
+        printf("Failed to load meme image: %s\n", IMG_GetError());
+        return;
+    }
+
+    // Clear the screen
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Black background
+    SDL_RenderClear(renderer);
+
+    // Get the texture dimensions
+    int imgWidth, imgHeight;
+    SDL_QueryTexture(memeTexture, NULL, NULL, &imgWidth, &imgHeight);
+
+    // Define the rendering rectangle (centered)
+    SDL_Rect renderQuad = { 
+        (255 - imgWidth) / 2, 
+        (190 - imgHeight) / 2, 
+        WINDOW_WIDTH , 
+        WINDOW_HEIGHT 
+    };
+
+    // Render the meme image
+    SDL_RenderCopy(renderer, memeTexture, NULL, &renderQuad);
+
+    // Present the image to the screen
+    SDL_RenderPresent(renderer);
+
+    // Wait for a short time before returning to the menu
+    SDL_Event e;
+    bool showingMeme = true;
+    while (showingMeme) {
+        while (SDL_PollEvent(&e)) {
+            if (e.type == SDL_QUIT) {
+                exit(0); // Exit application
+            } else if (e.type == SDL_KEYDOWN || e.type == SDL_MOUSEBUTTONDOWN) {
+                showingMeme = false; // Exit meme display
+            }
+        }
+    }
+
+    // Clean up resources
+    SDL_DestroyTexture(memeTexture);
+}
+
+
+void startMenu() {
     // Load the background texture
     SDL_Texture* backgroundTexture = IMG_LoadTexture(renderer, "background.png");
     if (!backgroundTexture) {
@@ -32,9 +80,10 @@ void startMenu(char player1Name[], char player2Name[]) {
     SDL_Event e;
     bool menuActive = true;
 
-    // Define invisible button areas 
+    // Define button areas
     SDL_Rect startButton = {167, 620, 200, 100}; // "START GAME" button position
     SDL_Rect quitButton = {430, 620, 200, 100};  // "QUIT" button position
+    SDL_Rect memeButton = {350, 375, 100, 100};  // "MEME" button position
 
     while (menuActive) {
         // Render the background
@@ -59,12 +108,20 @@ void startMenu(char player1Name[], char player2Name[]) {
                 if (SDL_PointInRect(&(SDL_Point){mouseX, mouseY}, &quitButton)) {
                     exit(0); // Quit the program
                 }
+
+                // Check if "MEME" button clicked
+                if (SDL_PointInRect(&(SDL_Point){mouseX, mouseY}, &memeButton)) {
+                    meme(); // Call the meme function
+                }
             }
         }
     }
 
     SDL_DestroyTexture(backgroundTexture);
 }
+
+
+
 
 
 void countPieces(int* player1Count, int* player2Count) {
@@ -148,11 +205,13 @@ void drawBoard(int currentPlayer) {
     sprintf(statusLine2, "RED: %d", player1Count);
     sprintf(statusLine3, "BLUE: %d", player2Count);
 
-    SDL_Color textColor_turn = {255 ,255 ,255 ,255 };
+    SDL_Color textColor_turn = {255 ,0 ,0 ,255 };
+    if(currentPlayer!=1)
+        textColor_turn = (SDL_Color){0, 0, 255, 255};
     SDL_Color textColor_red = {255, 0, 0, 255};
     SDL_Color textColor_blue = {0, 0, 255, 255};
 
-    // Render and display each line
+    // Render and display each liness
     SDL_Surface* textSurface1 = TTF_RenderText_Blended(font, statusLine1, textColor_turn);
     SDL_Surface* textSurface2 = TTF_RenderText_Blended(font, statusLine2, textColor_red);
     SDL_Surface* textSurface3 = TTF_RenderText_Blended(font, statusLine3, textColor_blue);
@@ -161,9 +220,9 @@ void drawBoard(int currentPlayer) {
     SDL_Texture* textTexture2 = SDL_CreateTextureFromSurface(renderer, textSurface2);
     SDL_Texture* textTexture3 = SDL_CreateTextureFromSurface(renderer, textSurface3);
 
-    SDL_Rect textRect1 = {280, 810, textSurface1->w, textSurface1->h};  // Line 1 position
-    SDL_Rect textRect2 = {5, 810, textSurface2->w, textSurface2->h};  // Line 2 position (slightly lower)
-    SDL_Rect textRect3 = {673, 810, textSurface3->w, textSurface3->h};  // Line 3 position
+    SDL_Rect textRect1 = {260, 805, 250, 35};  // Line 1 position
+    SDL_Rect textRect2 = {17, 805, 100, 35};  // Line 2 position (slightly lower)
+    SDL_Rect textRect3 = {673, 805, 100, 35};  // Line 3 position
 
     SDL_RenderCopy(renderer, textTexture1, NULL, &textRect1);
     SDL_RenderCopy(renderer, textTexture2, NULL, &textRect2);
@@ -274,20 +333,18 @@ void displayWinner(int winner) {
         sprintf(winnerText, "It's a Draw!");
     }
 
-    SDL_Color textColor = {0, 255, 255, 255};
-    SDL_Surface* textSurface = TTF_RenderText_Blended(font, winnerText, textColor);
+    SDL_Color textColor_winner = {255 ,0 ,0 ,255 };
+    if(winner!=1)
+        textColor_winner = (SDL_Color){0, 0, 255, 255};
+
+    SDL_Surface* textSurface = TTF_RenderText_Blended(font, winnerText, textColor_winner);
     SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
     SDL_FreeSurface(textSurface);
 
     int textWidth, textHeight;
     SDL_QueryTexture(textTexture, NULL, NULL, &textWidth, &textHeight);
 
-    SDL_Rect textRect = {
-    (WINDOW_WIDTH - textWidth) / 2,  // X: Center horizontally
-    (WINDOW_HEIGHT - textHeight) / 2 - 100, // Y: Shift 50 pixels down
-    textWidth,
-    textHeight
-    };
+    SDL_Rect textRect = { 120, 210, textWidth+100, textHeight+100};
 
 
    SDL_Rect trophyRect = {
@@ -315,7 +372,7 @@ void displayWinner(int winner) {
     }
 
     SDL_RenderPresent(renderer);
-    SDL_Delay(5000);  // Pause for 5 seconds before exiting
+    SDL_Delay(20000);  // Pause for 5 seconds before exiting
 
     SDL_DestroyTexture(textTexture);
 }
@@ -347,14 +404,14 @@ void gameLoop() {
 
 int main(int argc, char* argv[]) {
    SDL_Init(SDL_INIT_VIDEO);
-window = SDL_CreateWindow("Checkers Game", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 
-                            WINDOW_WIDTH,           // Use the updated width
-                            WINDOW_HEIGHT,          // Use the updated height     
-                            SDL_WINDOW_SHOWN);
-renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    window = SDL_CreateWindow("Checkers Game", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 
+                                WINDOW_WIDTH,           
+                                WINDOW_HEIGHT,           
+                                SDL_WINDOW_SHOWN);
+    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
     TTF_Init();
-    font = TTF_OpenFont("Montserrat-ExtraBoldItalic.ttf", 26); // Replace with the actual path
+    font = TTF_OpenFont("Montserrat-ExtraBoldItalic.ttf", 64); 
     if (!font) {
         printf("Failed to load font: %s\n", TTF_GetError());
         exit(1);
@@ -366,11 +423,9 @@ renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
         exit(1);
     }
 
-    char player1Name[50] = "Player 1";
-    char player2Name[50] = "Player 2";
 
     // Show the start menu
-    startMenu(player1Name, player2Name);
+    startMenu();
 
     // Initialize and start the game
     initBoard();
