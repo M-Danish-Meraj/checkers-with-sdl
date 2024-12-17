@@ -5,20 +5,11 @@
 This project uses C language and SDL Framework to create a Traditional Checkers game with mesmerizing graphics and animations.
 This project is a part of our Inter-semester assignment as CSIT undergrads from NEDUET Pakistan.
 
-## Project Team Description
-
-### Members:
-- Qazi Muhammad Ahad (CT-264) [Team lead]
-- Muhammad Danish Meraj (CT-268)
-- Muhammad Afzal Iqbal (CT-263)
-- Muhammad Daniyal (CT-258)
-
-### Project Developers:
-
-- [Qazi Muhammad Ahad ](https://github.com/MuhammadAhad053)
+### Project Developers / Members :
     -
 - [Muhammad Danish Meraj ](https://github.com/M-Danish-Meraj)
-    -
+- [Qazi Muhammad Ahad ](https://github.com/MuhammadAhad053)
+  
 
 ## Installation
 
