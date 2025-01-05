@@ -10,6 +10,10 @@ This project is a part of our Inter-semester assignment as CSIT undergrads from 
 - [Muhammad Danish Meraj ](https://github.com/M-Danish-Meraj)
 - [Qazi Muhammad Ahad ](https://github.com/MuhammadAhad053)
   
+### Project Preview :
+![image](https://github.com/user-attachments/assets/4e852be9-bbaa-48bb-925c-7bffaba60397)
+
+
 
 ## Installation
 
